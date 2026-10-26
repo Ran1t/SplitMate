@@ -3,7 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from '
 import axios from 'axios';
 import { ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, CircleHelp, House, LogOut, Menu, Plus, Receipt, Settings, Trash2, Users, Wallet, X, Utensils, Car, Plane, MoreHorizontal, PiggyBank, SlidersHorizontal, Mail, CreditCard } from 'lucide-react';
 
-const apiBase = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000/api`;
+const apiBase = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:8000/api` : '/api');
 const api = axios.create({ baseURL: apiBase, withCredentials: true });
 const categories = ['Food & drink', 'Groceries', 'Transport', 'Accommodation', 'Entertainment', 'Utilities', 'Other'];
 const money = (cents, currency = 'INR') => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format((Number(cents) || 0) / 100);

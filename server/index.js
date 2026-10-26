@@ -7,6 +7,8 @@ import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 import { connectDB } from './config/db.js';
@@ -21,6 +23,7 @@ import { calculateAllocations, calculateBalances } from './utils/balances.js';
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET must be at least 32 characters.');
 const app = express();
+const serverDirectory = path.dirname(fileURLToPath(import.meta.url));
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: { directives: {
   defaultSrc: ["'self'"], baseUri: ["'self'"], frameAncestors: ["'self'"], objectSrc: ["'none'"],
@@ -318,6 +321,13 @@ app.get('/api/dashboard', requireAuth, wrap(async (req, res) => {
   });
   res.json({ groups, groupSummaries, expenses: expenses.slice(0, 10), spentCents, spendingByCurrency, owedByCurrency, owingByCurrency, netBalanceCents, owedToMeCents, iOweCents, groupsCount: groups.length });
 }));
+
+const clientBuildDirectory = path.resolve(serverDirectory, '../client/dist');
+app.use(express.static(clientBuildDirectory));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(clientBuildDirectory, 'index.html'));
+});
 
 app.use((err, req, res, next) => {
   console.error(err);
