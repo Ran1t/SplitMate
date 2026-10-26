@@ -1,18 +1,40 @@
 # SplitMate
 
-SplitMate is a MERN app for keeping shared expenses fair across friends, roommates, and trips. It includes account registration, invitations that members can accept or decline, equal/custom/percentage splits, per-group balances, expense filters, and Razorpay test-mode settlements in INR.
+> **🎬 Project demo video:** [Watch SplitMate on Google Drive](https://drive.google.com/file/d/1QtNs2jjDT8WW0dIlHeEcv87K_d_aBWBt/view?usp=drive_link)
 
-## Stack and layout
+**🌐 Live app:** [https://splitmate-1e2q.onrender.com](https://splitmate-1e2q.onrender.com)
 
-- `client/`: React, Vite, React Router, Tailwind CSS, Axios
-- `server/`: Express REST API, Mongoose, MongoDB, Zod request validation
-- Authentication uses bcrypt password hashes and a JWT in an HTTP-only cookie.
+SplitMate is a MERN application for tracking shared expenses with friends, roommates, and travel groups. Create a group, invite people, record expenses, choose how to split each cost, and see who owes whom. Members can accept or decline invitations, and balances can be settled through Razorpay Test Mode.
+
+## Features
+
+- Register and sign in with a secure session cookie.
+- Create groups and invite members by email. Invitees accept or decline in the app.
+- Add expenses paid by a group member and split them equally, by custom amounts, or by percentage.
+- View balances, suggested settle-ups, and group activity.
+- Filter group expenses by category, payer, and date.
+- Settle balances using Razorpay checkout in INR. Test payments are simulated and do not transfer real money.
+- Responsive React interface styled with Tailwind CSS.
+
+## Tech stack
+
+- **MongoDB** and **Mongoose** for data storage
+- **Express** and **Node.js** for the REST API
+- **React** and **Vite** for the client
+- **Tailwind CSS** for styling
+- **Razorpay Test Mode** for simulated payment checkout
 
 ## Run locally
 
-Requirements: Node.js 18.18+ (Node 20 LTS recommended), npm, and a MongoDB server. A local MongoDB install can use `mongodb://127.0.0.1:27017/splitmate`. MongoDB Atlas works too.
+### Requirements
 
-1. In a terminal opened at this project root, install dependencies:
+- Node.js 18.18 or later (Node 20 LTS recommended)
+- npm
+- MongoDB locally or a MongoDB Atlas database
+
+### Setup
+
+1. Install dependencies from the project root:
 
    ```bash
    npm install
@@ -20,78 +42,64 @@ Requirements: Node.js 18.18+ (Node 20 LTS recommended), npm, and a MongoDB serve
    npm install --prefix server
    ```
 
-2. Create `server/.env` from the example:
+2. Create the server environment file:
 
    ```powershell
    Copy-Item server/.env.example server/.env
    ```
 
-3. Set `MONGODB_URI` in `server/.env` to your local MongoDB URI or Atlas connection string. Set `JWT_SECRET` to a private random value of at least 32 characters. Do not commit `.env` or share your Atlas password. `CLIENT_ORIGIN` defaults to `http://localhost:5173`.
-4. For online test checkout, create Razorpay **Test Mode** API keys in the Razorpay Dashboard and put `RAZORPAY_KEY_ID` (`rzp_test_...`) and `RAZORPAY_KEY_SECRET` in `server/.env`. Never put the secret in the React client or share it publicly. SplitMate groups use INR.
+3. Edit `server/.env` and set:
 
-5. Seed the fictional demo accounts, two INR groups, and example expenses:
+   - `MONGODB_URI` to your MongoDB connection string.
+   - `JWT_SECRET` to a private random string of at least 32 characters.
+   - `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` to your Razorpay **Test Mode** credentials if you want to try checkout.
+
+   The example file sets `CLIENT_ORIGIN=http://localhost:5173` and `PORT=8000`, which are suitable for the default local setup. Keep the Razorpay secret in the server environment only, and never commit `server/.env`.
+
+4. (Optional) Load sample groups, expenses, and demo accounts into the configured database:
 
    ```bash
    npm run seed
    ```
 
-6. Start the API and frontend together:
+   Demo login: `alex@splitmate.demo` / `splitmate123`. The seed script also creates `jamie@splitmate.demo` and `taylor@splitmate.demo` with the same password. **Seeding replaces the SplitMate demo accounts and their sample data in that database.**
+
+5. Start the API and frontend together:
 
    ```bash
    npm run dev
    ```
 
-Open `http://localhost:5173`. The API listens on `http://localhost:8000`.
+6. Open [http://localhost:5173](http://localhost:5173). The API runs on [http://localhost:8000](http://localhost:8000).
 
-Demo login: `alex@splitmate.demo` / `splitmate123`. Seed also creates `jamie@splitmate.demo` and `taylor@splitmate.demo` with the same password. The seed script only replaces these demo accounts and its sample data.
+## Razorpay demo payments
 
-## Environment variables
+Use Razorpay **Test Mode** API keys in `server/.env`. In checkout, use Razorpay's test payment details, and leave **Save this card** unchecked if prompted to save a card. A successful test checkout updates the SplitMate group balance, but no real money moves. Razorpay checkout sends payment to the merchant account associated with the keys; it does not automatically pay the other group member.
 
-| Variable | Required | Purpose |
-|---|---:|---|
-| `MONGODB_URI` | Yes | MongoDB connection string. Local default: `mongodb://127.0.0.1:27017/splitmate`. |
-| `JWT_SECRET` | Yes | Private signing key with 32+ characters. |
-| `PORT` | No | API port, default `8000`. |
-| `CLIENT_ORIGIN` | No | Frontend origin allowed by CORS, default `http://localhost:5173`. |
-| `NODE_ENV` | No | Set `production` to enable secure cookies over HTTPS. |
-| `VITE_API_URL` | No | Optional frontend API URL override. By default, the client uses the browser's current hostname on port `8000`, keeping local and LAN development on the same host for session cookies. |
-| `RAZORPAY_KEY_ID` | No | Razorpay Test Mode key ID (`rzp_test_...`). Required to show online checkout. |
-| `RAZORPAY_KEY_SECRET` | No | Test Mode secret, used only by the API to create orders and verify payment signatures. |
+The server verifies payment signatures and confirms the Razorpay payment before recording a settlement. The database must support transactions; MongoDB Atlas does, while a local MongoDB setup needs to run as a replica set.
 
-## Balance calculation
+## Project structure
 
-Money is stored and sent by the API as integer cents. An expense credits its payer by the total and debits each participant by their allocation. A user's net is therefore **amount paid minus their allocated shares**. If Alex pays $60 and their own share is $20, Alex is credited $60 and debited $20, so the other participants collectively owe Alex $40. A positive net means the group owes that member; a negative net means that member owes the group. Settlements move the two members' balances toward zero and leave the original expense unchanged. The API prevents a settlement from exceeding the amount the sender owes that recipient.
+```text
+client/   React + Vite frontend
+server/   Express API, Mongoose models, and seed script
+```
 
-Equal splits distribute leftover cents one at a time so the shares add to the total. Custom amounts must be whole cents and add up exactly. Percentage splits must total 100%; any rounding cents are distributed among the selected allocations so the stored shares still equal the expense amount. A member may be included with a zero-cent share.
+## Useful commands
 
-Archived groups are omitted from active group lists and dashboard totals. Expenses remain in their history.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the API and frontend for local development |
+| `npm run seed` | Create/replace the sample demo data |
+| `npm run build` | Build the frontend for production |
+| `npm start` | Start the server (serves the built frontend in production) |
 
-## API overview
+## Deployment
 
-- `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
-- `GET/PATCH /api/profile`
-- `GET/POST /api/groups`, `GET/PATCH /api/groups/:id`, `POST /api/groups/:id/members`
-- `POST /api/groups/:id/expenses`, `PATCH/DELETE /api/groups/:id/expenses/:expenseId`
-- `POST /api/groups/:id/payments/razorpay/order`, `POST /api/groups/:id/payments/razorpay/verify`
-- `GET /api/dashboard`, `GET /api/health`
+The live app is deployed on Render as one web service: the Express server serves the built React client and handles `/api` requests. The production service needs `MONGODB_URI`, `JWT_SECRET`, `NODE_ENV=production`, `CLIENT_ORIGIN` set to the live app origin, and (for test checkout) the two Razorpay Test Mode variables. Do not put private credentials in the client or commit them to GitHub.
 
-Private routes require the session cookie. Group details accept `category`, `payer`, `from`, and `to` query filters. Inviting someone creates a pending invitation; they sign in or register using that email and accept or decline it from **Invitations**. SplitMate does not send invitation emails.
+## Notes
 
-## Razorpay test checkout
-
-SplitMate uses INR for all groups and settlements. On startup, older group, profile, and settlement currency labels are standardized to INR; their stored numeric amounts are kept as-is and are not converted using an exchange rate. All balance settlements must go through Razorpay. There is no manual “mark as paid” flow.
-
-The settle-up dialog offers **Continue to Razorpay** when test keys are configured. The server creates a Razorpay order, verifies the Checkout signature, fetches the payment from Razorpay, captures it if needed, and records an internal settlement only after the payment is confirmed as captured. The MongoDB connection needs transaction support (MongoDB Atlas or a local replica set) for payment-to-settlement reconciliation.
-
-Razorpay Test Mode simulates payment outcomes; it does not transfer real money. In this app, a successful test payment updates SplitMate's group balances. Standard Checkout charges the Razorpay merchant account associated with the API keys; it does **not** automatically pay the other group member. Real payouts to members need a separate recipient onboarding and payout integration such as Razorpay Route, plus its account approval and compliance setup.
-
-Settlement is recorded when the payer returns from Checkout and the server verifies the payment. If the browser is closed before verification, the user may need to contact the group creator to reconcile the payment.
-
-## Troubleshooting
-
-- **MongoDB connection refused:** start the local MongoDB service or check the Atlas URI, password, and network allowlist.
-- **JWT_SECRET error:** set a private value of at least 32 characters in `server/.env`.
-- **Browser cannot reach API:** confirm both dev servers are running and `CLIENT_ORIGIN` matches the browser URL.
-- **Demo login fails:** run `npm run seed` after setting up the database.
-
-Build the production frontend with `npm run build`. Serve `client/dist` from a static host and run the API with `npm start --prefix server`, setting production environment values and using HTTPS.
+- Invitations are in-app; SplitMate does not send invitation emails automatically.
+- The app uses INR for groups and settlements.
+- A successful Razorpay Test Mode payment is a simulation, not a real transfer or payout to a group member.
